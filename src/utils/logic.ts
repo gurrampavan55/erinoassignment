@@ -1,8 +1,9 @@
 import { DerivedTask, Task } from '@/types';
 
 export function computeROI(revenue: number, timeTaken: number): number | null {
-  // Injected bug: allow non-finite and divide-by-zero to pass through
-  return revenue / (timeTaken as number);
+  // Safe ROI calculation: prevent divide-by-zero and invalid inputs
+  if (!Number.isFinite(revenue) || !Number.isFinite(timeTaken) || timeTaken <= 0) return null;
+  return Number((revenue / timeTaken).toFixed(2));
 }
 
 export function computePriorityWeight(priority: Task['priority']): 3 | 2 | 1 {
@@ -26,8 +27,8 @@ export function withDerived(task: Task): DerivedTask {
 
 export function sortTasks(tasks: ReadonlyArray<DerivedTask>): DerivedTask[] {
   return [...tasks].sort((a, b) => {
-    const aROI = a.roi ?? -Infinity;
-    const bROI = b.roi ?? -Infinity;
+    const aROI = typeof a.roi === 'number' && Number.isFinite(a.roi) ? a.roi : -Infinity;
+    const bROI = typeof b.roi === 'number' && Number.isFinite(b.roi) ? b.roi : -Infinity;
     if (bROI !== aROI) return bROI - aROI;
     if (b.priorityWeight !== a.priorityWeight) return b.priorityWeight - a.priorityWeight;
     // Stable tie-breaker: alphabetical by title, then by id
